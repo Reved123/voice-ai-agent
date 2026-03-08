@@ -32,9 +32,6 @@ The agent can:
 | WebSocket Real-Time | ✅ | `/ws/voice` streams audio & returns response |
 | REST APIs | ✅ | `/process-text`, `/speech-to-text`, `/voice-agent`, `/appointments` |
 | Latency Logging | ✅ | STT & TTS time measured |
-| Multilingual TTS | ⚠️ Partial | Only English TTS |
-| Persistent Memory | ❌ | Not implemented |
-| Outbound Campaigns | ❌ | Not implemented |
 
 ---
 
