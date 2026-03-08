@@ -20,33 +20,33 @@ async def websocket_voice_agent(websocket: WebSocket):
 
     while True:
 
-        # Receive audio bytes
+        
         data = await websocket.receive_bytes()
 
         start_time = time.time()
 
-        # Save audio
+        
         audio_path = f"audio_{uuid.uuid4()}.wav"
 
         with open(audio_path, "wb") as f:
             f.write(data)
 
-        # -------- Speech to Text --------
+        
         stt_start = time.time()
         result = model.transcribe(audio_path)
         text = result["text"]
         stt_time = time.time() - stt_start
 
-        # -------- Language Detection --------
+        
         lang = detect_language(text)
 
-        # -------- Translation --------
+        
         translated = GoogleTranslator(source='auto', target='en').translate(text)
         store_session(session_id, translated)
         history = get_session(session_id)
         print("Conversation history:",history)
 
-        # -------- Intent Detection --------
+        
         intent = detect_intent(translated)
 
         response = ""
@@ -81,7 +81,7 @@ async def websocket_voice_agent(websocket: WebSocket):
             else:
                 response = "Sorry I did not understand"
 
-        # -------- Text To Speech --------
+        
         tts_start = time.time()
         audio_file = text_to_speech(response)
         tts_time = time.time() - tts_start
@@ -89,12 +89,12 @@ async def websocket_voice_agent(websocket: WebSocket):
         with open(audio_file, "rb") as f:
             audio_bytes = f.read()
 
-        # Encode audio for websocket
+        
         audio_base64 = base64.b64encode(audio_bytes).decode()
 
         total_latency = time.time() - start_time
 
-        # -------- Send Response --------
+    
         await websocket.send_json({
             "speech_text": text,
             "translated_text": translated,
@@ -111,23 +111,23 @@ async def websocket_voice_agent(websocket: WebSocket):
 
 
 
-# -------- Redis Connection --------
+
 redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
 
-# -------- Whisper Model --------
+
 model = whisper.load_model("base")
 
-# -------- Doctor Schedule --------
+
 doctor_schedule = {
     "cardiologist": ["10:00", "14:00", "16:00"],
     "dermatologist": ["11:00", "15:00"],
     "dentist": ["09:00", "13:00"]
 }
 
-# -------- Appointment Storage --------
+
 appointments = []
 
-# -------- Redis Memory --------
+
 def store_session(session_id, data):
     redis_client.rpush(session_id, data)
     redis_client.expire(session_id,3600)
@@ -135,21 +135,21 @@ def store_session(session_id, data):
 def get_session(session_id):
     return redis_client.lrange(session_id,0,-1)
 
-# -------- Language Detection --------
+
 def detect_language(text):
     try:
         return detect(text)
     except:
         return "en"
 
-# -------- Text to Speech --------
+
 def text_to_speech(text):
     tts = gTTS(text=text, lang="en")
     filename = f"response_{uuid.uuid4()}.mp3"
     tts.save(filename)
     return filename
 
-# -------- Intent Detection --------
+
 def detect_intent(text):
 
     text = text.lower()
@@ -168,7 +168,7 @@ def detect_intent(text):
 
     return "general_query"
 
-# -------- Extract Appointment Details --------
+
 def extract_appointment_details(text):
 
     doctor = None
@@ -188,7 +188,7 @@ def extract_appointment_details(text):
 
     return doctor, date, time
 
-# -------- Check Slot Availability --------
+
 def check_availability(doctor, date, time):
 
     for appt in appointments:
@@ -197,7 +197,7 @@ def check_availability(doctor, date, time):
 
     return True
 
-# -------- Book Appointment --------
+
 def book_appointment(patient, doctor, date, time):
 
     if not check_availability(doctor, date, time):
@@ -214,7 +214,7 @@ def book_appointment(patient, doctor, date, time):
 
     return f"Appointment booked with {doctor} on {date} at {time}"
 
-# -------- Cancel Appointment --------
+
 def cancel_appointment(patient):
 
     global appointments
@@ -223,7 +223,7 @@ def cancel_appointment(patient):
 
     return "Appointment cancelled successfully"
 
-# -------- Reschedule Appointment --------
+
 def reschedule_appointment(patient, new_date, new_time):
 
     for appt in appointments:
@@ -234,7 +234,7 @@ def reschedule_appointment(patient, new_date, new_time):
 
     return "No appointment found to reschedule"
 
-# -------- Math Solver --------
+
 def solve_math(text):
 
     numbers = list(map(int, re.findall(r'\d+', text)))
@@ -257,11 +257,10 @@ def solve_math(text):
 
     return None
 
-# -------- Input Model --------
+
 class InputText(BaseModel):
     text: str
 
-# -------- Process Text API --------
 @app.post("/process-text")
 def process_text(data: InputText):
 
@@ -280,7 +279,7 @@ def process_text(data: InputText):
         "intent": intent
     }
 
-# -------- Redis Test --------
+
 @app.get("/redis-test")
 def redis_test():
 
@@ -290,7 +289,7 @@ def redis_test():
 
     return {"redis_value": value}
 
-# -------- Speech to Text --------
+
 @app.post("/speech-to-text")
 async def speech_to_text(file: UploadFile = File(...)):
 
@@ -305,17 +304,17 @@ async def speech_to_text(file: UploadFile = File(...)):
         "transcribed_text": result["text"]
     }
 
-# -------- Get Appointments --------
+
 @app.get("/appointments")
 def get_appointments():
     return appointments
 
-# -------- Health Check --------
+
 @app.get("/health")
 def health():
     return {"status": "Voice agent running"}
 
-# -------- Voice AI Agent --------
+
 @app.post("/voice-agent")
 async def voice_agent(file: UploadFile = File(...)):
 
@@ -324,17 +323,16 @@ async def voice_agent(file: UploadFile = File(...)):
     with open(audio_path, "wb") as f:
         f.write(await file.read())
 
-    # Speech to Text
+    
     result = model.transcribe(audio_path)
     text = result["text"]
 
-    # Language Detection
+    
     lang = detect_language(text)
 
-    # Translation
     translated = GoogleTranslator(source='auto', target='en').translate(text)
 
-    # Intent
+    
     intent = detect_intent(translated)
 
     response = ""
